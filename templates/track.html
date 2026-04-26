@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Assist — Track Mechanic</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#FF5C1A;--or-d:#E04A0E;--or-g:rgba(255,92,26,.12);--bg:#0D0D0D;--bg2:#141414;--bg3:#1C1C1C;--tx:#F0EDE8;--tx2:#7A7672;--tx3:#3A3835;--bd:rgba(255,255,255,0.07);--r:12px;--green:#22c55e;--amber:#f59e0b;--blue:#3b82f6}
+html,body{height:100vh;overflow:hidden;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0;z-index:1000}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo .ico{width:32px;height:32px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo .ico svg{width:16px;height:16px}
+.nav-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:15px}
+.nav-logo span em{font-style:normal;color:var(--or)}
+.back-link{display:flex;align-items:center;gap:6px;color:var(--tx2);text-decoration:none;font-size:13px;transition:color .2s}
+.back-link:hover{color:var(--tx)}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+/* MAP */
+#trackMap{flex:1;z-index:1}
+
+/* PANEL */
+.panel{width:340px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow-y:auto;z-index:2}
+.panel-head{padding:18px 20px;border-bottom:1px solid var(--bd)}
+.panel-head h2{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:4px}
+.panel-head p{font-size:13px;color:var(--tx2)}
+
+/* LIVE BADGE */
+.live-row{display:flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(34,197,94,.06);border-bottom:1px solid rgba(34,197,94,.15)}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+.live-text{font-size:12px;color:var(--green);font-weight:500}
+.live-coords{font-size:11px;color:var(--tx2);margin-left:auto;font-family:monospace}
+
+/* STATUS STEPS */
+.steps{padding:18px 20px;border-bottom:1px solid var(--bd)}
+.step{display:flex;gap:12px;margin-bottom:14px;position:relative}
+.step:not(:last-child)::before{content:'';position:absolute;left:14px;top:28px;width:2px;height:calc(100% + 2px);background:var(--bd)}
+.step.done::before{background:var(--or)}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;border:2px solid var(--bd);background:var(--bg3)}
+.step.done .step-dot{background:var(--or);border-color:var(--or);color:#fff}
+.step.active .step-dot{border-color:var(--or);background:var(--or-g);animation:ring 1.5s infinite}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(255,92,26,.4)}70%{box-shadow:0 0 0 8px rgba(255,92,26,0)}}
+.step-text .st{font-size:13px;font-weight:500;margin-bottom:1px}
+.step-text .sd{font-size:12px;color:var(--tx2)}
+
+/* MECHANIC CARD */
+.mech-card{padding:16px 20px;border-bottom:1px solid var(--bd)}
+.mech-card h4{font-size:11px;font-weight:600;color:var(--tx3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+.mech-row{display:flex;align-items:center;gap:12px}
+.mech-avatar{width:44px;height:44px;background:var(--or);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;font-family:'Syne',sans-serif;flex-shrink:0}
+.mech-details .mn{font-size:14px;font-weight:500;margin-bottom:2px}
+.mech-details .mr{font-size:13px;color:var(--amber)}
+.mech-details .mv{font-size:12px;color:var(--tx2);margin-top:1px}
+.call-row{display:flex;gap:8px;margin-top:12px}
+.call-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;border:none;transition:all .2s}
+.call-btn.primary{background:var(--or);color:#fff}
+.call-btn.primary:hover{background:var(--or-d)}
+.call-btn.secondary{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd)}
+.call-btn.secondary:hover{border-color:rgba(255,255,255,.2);color:var(--tx)}
+
+/* ETA BOX */
+.eta-box{margin:14px 20px 0;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.eta-label{font-size:12px;color:var(--tx2)}
+.eta-val{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--or)}
+
+/* PAYMENT */
+.pay-section{padding:16px 20px;border-top:1px solid var(--bd);margin-top:auto}
+.pay-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center}
+.pay-card h4{font-size:12px;color:var(--tx2);margin-bottom:10px}
+.qr-box{width:80px;height:80px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:32px}
+.pay-note{font-size:11px;color:var(--tx2);line-height:1.5}
+.pay-btn{width:100%;margin-top:10px;padding:10px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;display:none;transition:opacity .2s}
+.pay-btn:hover{opacity:.85}
+
+.cancel-link{display:block;text-align:center;color:var(--tx2);font-size:13px;cursor:pointer;padding:12px 20px;transition:color .2s}
+.cancel-link:hover{color:var(--red)}
+
+.hidden{display:none !important}
+
+@media(max-width:700px){
+  .main{flex-direction:column}
+  #trackMap{flex:none;height:55vh}
+  .panel{width:100%;border-left:none;border-top:1px solid var(--bd);overflow-y:auto;max-height:45vh}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+    <span>Road<em>Assist</em></span>
+  </div>
+  <a href="/dashboard" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Dashboard
+  </a>
+</nav>
+
+<div class="main">
+
+  <!-- LEAFLET MAP -->
+  <div id="trackMap"></div>
+
+  <!-- SIDE PANEL -->
+  <div class="panel">
+
+    <div class="panel-head">
+      <h2>Tracking mechanic</h2>
+      <p id="requestTypeText">Loading request...</p>
+    </div>
+
+    <!-- LIVE LOCATION ROW -->
+    <div class="live-row" id="liveRow" style="display:none">
+      <div class="live-dot"></div>
+      <span class="live-text">Live location active</span>
+      <span class="live-coords" id="mechCoords">—</span>
+    </div>
+
+    <!-- STATUS STEPS -->
+    <div class="steps">
+      <div class="step done" id="step1">
+        <div class="step-dot">✓</div>
+        <div class="step-text"><div class="st">Request sent</div><div class="sd">Your request is placed</div></div>
+      </div>
+      <div class="step active" id="step2">
+        <div class="step-dot">●</div>
+        <div class="step-text"><div class="st">Mechanic found</div><div class="sd" id="step2Desc">Searching for mechanic...</div></div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-dot">3</div>
+        <div class="step-text"><div class="st">Mechanic arriving</div><div class="sd">On the way to you</div></div>
+      </div>
+      <div class="step" id="step4">
+        <div class="step-dot">4</div>
+        <div class="step-text"><div class="st">Service in progress</div><div class="sd">Being worked on</div></div>
+      </div>
+      <div class="step" id="step5">
+        <div class="step-dot">5</div>
+        <div class="step-text"><div class="st">Completed — pay</div><div class="sd">Rate your mechanic</div></div>
+      </div>
+    </div>
+
+    <!-- MECHANIC INFO -->
+    <div class="mech-card hidden" id="mechCard">
+      <h4>Your mechanic</h4>
+      <div class="mech-row">
+        <div class="mech-avatar" id="mechAvatarText">?</div>
+        <div class="mech-details">
+          <div class="mn" id="mechNameText">—</div>
+          <div class="mr" id="mechRatingText">⭐ —</div>
+          <div class="mv" id="mechPhoneText">—</div>
+        </div>
+      </div>
+      <div class="call-row">
+        <a class="call-btn primary" id="callMechBtn" href="#">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 4.9 4.9 2 2 0 0 1 6.9 2.7h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1l-1.3 1.3a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9z"/></svg>
+          Call mechanic
+        </a>
+        <button class="call-btn secondary" onclick="centerMap()">Center map</button>
+      </div>
+      <div class="eta-box">
+        <div class="eta-label">Estimated arrival</div>
+        <div class="eta-val" id="etaText">Calculating...</div>
+      </div>
+    </div>
+
+    <!-- PAYMENT SECTION -->
+    <div class="pay-section">
+      <div class="pay-card">
+        <h4>Pay after service is completed</h4>
+        <div class="qr-box">📱</div>
+        <div class="pay-note">Scan QR with GPay, PhonePe, or Paytm<br/>after the mechanic finishes the job</div>
+        <button class="pay-btn" id="payBtn" onclick="markPaid()">I have paid ✓</button>
+      </div>
+      <span class="cancel-link" id="cancelBtn" onclick="cancelRequest()">Cancel request</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const requestId = "{{ request_id }}";
+let map, userMarker, mechMarker, routeLine;
+let pollRef;
+let userLat, userLng;
+let mechLat, mechLng;
+
+// ── INIT MAP ──
+function initMap(lat, lng) {
+  if (map) return;
+
+  map = L.map('trackMap', {center: [lat, lng], zoom: 14, zoomControl: true});
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+}
+
+// ── USER MARKER (blue) ──
+function placeUserMarker(lat, lng) {
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      width:36px;height:36px;background:#3b82f6;
+      border:3px solid #fff;border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,.5);
+      display:flex;align-items:center;justify-content:center
+    "><span style="transform:rotate(45deg);font-size:16px;display:block">📍</span></div>`,
+    iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -38]
+  });
+
+  if (userMarker) map.removeLayer(userMarker);
+  userMarker = L.marker([lat, lng], {icon})
+    .addTo(map)
+    .bindPopup('<b>Your location</b>')
+    .openPopup();
+}
+
+// ── MECHANIC MARKER (orange) ──
+function placeMechMarker(lat, lng, name) {
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="
+      width:40px;height:40px;background:#FF5C1A;
+      border:3px solid #fff;border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);box-shadow:0 2px 10px rgba(255,92,26,.5);
+      display:flex;align-items:center;justify-content:center
+    "><span style="transform:rotate(45deg);font-size:17px;display:block">🔧</span></div>`,
+    iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -42]
+  });
+
+  if (mechMarker) {
+    mechMarker.setLatLng([lat, lng]);
+  } else {
+    mechMarker = L.marker([lat, lng], {icon})
+      .addTo(map)
+      .bindPopup(`<b>${name || 'Mechanic'}</b><br>On the way to you`);
+  }
+
+  // Update route line
+  if (userMarker) {
+    if (routeLine) map.removeLayer(routeLine);
+    routeLine = L.polyline(
+      [[lat, lng], userMarker.getLatLng()],
+      {color: '#FF5C1A', weight: 3, dashArray: '8 6', opacity: 0.75}
+    ).addTo(map);
+  }
+
+  // Update coords display
+  document.getElementById('mechCoords').textContent =
+    `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  document.getElementById('liveRow').style.display = 'flex';
+
+  // Calculate rough ETA (straight line distance)
+  if (userLat && userLng) {
+    const dist = getDistanceKm(lat, lng, userLat, userLng);
+    const etaMins = Math.max(2, Math.round(dist / 0.5)); // assume 30 km/h in city
+    document.getElementById('etaText').textContent =
+      dist < 0.5 ? 'Almost there!' : `~${etaMins} min (${dist.toFixed(1)} km)`;
+  }
+}
+
+// ── DISTANCE CALC ──
+function getDistanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function centerMap() {
+  if (mechMarker && userMarker) {
+    const group = L.featureGroup([mechMarker, userMarker]);
+    map.fitBounds(group.getBounds().pad(0.25));
+  } else if (mechMarker) {
+    map.setView(mechMarker.getLatLng(), 15);
+  } else if (userMarker) {
+    map.setView(userMarker.getLatLng(), 15);
+  }
+}
+
+// ── UPDATE STATUS STEPS ──
+function updateSteps(status) {
+  const stepMap = {pending: 1, accepted: 2, ongoing: 3, completed: 4, cancelled: 0};
+  const active  = stepMap[status] || 0;
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('done', 'active');
+    if (i < active + 1) el.classList.add('done');
+    else if (i === active + 1) el.classList.add('active');
+  }
+}
+
+// ── LOAD REQUEST DATA ──
+async function loadRequest() {
+  try {
+    const res = await fetch(`/api/request/${requestId}`);
+    if (res.redirected) { window.location.href = '/'; return; }
+    if (!res.ok) return;
+    const d = await res.json();
+
+    document.getElementById('requestTypeText').textContent =
+      capitalize(d.service_type) + ' service · ' + formatStatus(d.status);
+
+    updateSteps(d.status);
+
+    // Get user GPS location and place on map
+    if (!userLat && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        if (!map) initMap(userLat, userLng);
+        placeUserMarker(userLat, userLng);
+        if (mechLat && mechLng) {
+          centerMap();
+        } else {
+          map.setView([userLat, userLng], 14);
+        }
+      }, () => {
+        // Use stored user coords from request if GPS denied
+        if (d.user_lat && d.user_lng) {
+          userLat = d.user_lat;
+          userLng = d.user_lng;
+          if (!map) initMap(userLat, userLng);
+          placeUserMarker(userLat, userLng);
+        }
+      });
+    }
+
+    // Use stored user coords as fallback
+    if (!userLat && d.user_lat) {
+      userLat = d.user_lat;
+      userLng = d.user_lng;
+      if (!map) initMap(userLat, userLng);
+      placeUserMarker(userLat, userLng);
+    }
+
+    // Show mechanic info when accepted
+    if (d.status === 'accepted' || d.status === 'ongoing' || d.status === 'completed') {
+      document.getElementById('mechCard').classList.remove('hidden');
+      document.getElementById('step2Desc').textContent = 'Mechanic accepted your request';
+
+      if (d.mechanics) {
+        const rating = d.mechanics.rating;
+        document.getElementById('mechRatingText').textContent =
+          '⭐ ' + (rating ? rating.toFixed(1) : 'New');
+      }
+
+      // Load mechanic live location from DB
+      await loadMechanicLocation(d.mechanic_id, d.users);
+    }
+
+    if (d.status === 'completed') {
+      document.getElementById('payBtn').style.display = 'block';
+      document.getElementById('cancelBtn').style.display = 'none';
+      document.getElementById('etaText').textContent = 'Arrived ✓';
+      clearInterval(pollRef);
+    }
+
+    if (d.status === 'cancelled') {
+      clearInterval(pollRef);
+      document.getElementById('requestTypeText').textContent = 'Request was cancelled';
+    }
+
+  } catch(e) { console.error(e); }
+}
+
+// ── LOAD MECHANIC LIVE LOCATION ──
+async function loadMechanicLocation(mechanicId, userInfo) {
+  if (!mechanicId) return;
+  try {
+    // Fetch mechanic location from mechanics table via mechanic_id
+    const res  = await fetch(`/api/mechanic/location-by-id/${mechanicId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.latitude && data.longitude) {
+      mechLat = data.latitude;
+      mechLng = data.longitude;
+
+      const mechName = data.full_name || 'Mechanic';
+      const mechPhone = data.phone || '';
+
+      if (!map) initMap(mechLat, mechLng);
+      placeMechMarker(mechLat, mechLng, mechName);
+
+      document.getElementById('mechNameText').textContent    = mechName;
+      document.getElementById('mechPhoneText').textContent   = mechPhone;
+      document.getElementById('mechAvatarText').textContent  = mechName.charAt(0).toUpperCase();
+      document.getElementById('callMechBtn').href            = 'tel:' + mechPhone;
+
+      centerMap();
+    }
+  } catch(e) { console.error('Mechanic location fetch error:', e); }
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function formatStatus(s) {
+  const m = {pending:'Waiting for mechanic',accepted:'Mechanic on the way',
+    ongoing:'In progress',completed:'Completed',cancelled:'Cancelled'};
+  return m[s] || s;
+}
+
+async function cancelRequest() {
+  if (!confirm('Cancel this request?')) return;
+  await fetch(`/api/request/${requestId}/cancel`, {method: 'POST'});
+  window.location.href = '/dashboard';
+}
+
+function markPaid() {
+  alert('Thank you for your payment! Please rate your mechanic.');
+  window.location.href = '/dashboard';
+}
+
+// ── INIT ──
+// Default map at user location or India center
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    pos => { initMap(pos.coords.latitude, pos.coords.longitude); },
+    ()  => { initMap(17.3850, 78.4867); } // Hyderabad fallback
+  );
+} else {
+  initMap(17.3850, 78.4867);
+}
+
+loadRequest();
+pollRef = setInterval(loadRequest, 8000);
+</script>
+</body>
+</html>
