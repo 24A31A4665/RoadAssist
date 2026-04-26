@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Assist — Mechanic Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --or:#FF5C1A;--or-d:#E04A0E;--or-g:rgba(255,92,26,.12);
+  --bg:#0D0D0D;--bg2:#141414;--bg3:#1C1C1C;--bg4:#242424;
+  --tx:#F0EDE8;--tx2:#7A7672;--tx3:#3A3835;
+  --bd:rgba(255,255,255,0.07);--r:12px;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6
+}
+html,body{height:100vh;overflow:hidden;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0;z-index:1000}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo .ico{width:32px;height:32px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo .ico svg{width:16px;height:16px}
+.nav-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}
+.nav-logo span em{font-style:normal;color:var(--or)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-badge{font-size:11px;padding:4px 10px;border-radius:100px;font-weight:500}
+.nav-badge.online{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.nav-badge.offline{background:rgba(255,255,255,.05);color:var(--tx2);border:1px solid var(--bd)}
+.nav-btn{padding:6px 14px;border-radius:100px;border:1px solid var(--bd);background:none;color:var(--tx2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.nav-btn:hover{border-color:rgba(255,255,255,.2);color:var(--tx)}
+
+.toggle-bar{display:flex;align-items:center;gap:12px;padding:12px 24px;background:var(--bg2);border-bottom:1px solid var(--bd);cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle-bar:hover{background:var(--bg3)}
+.toggle-info h3{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;margin-bottom:2px}
+.toggle-info p{font-size:12px;color:var(--tx2)}
+.toggle-switch{margin-left:auto;width:44px;height:24px;background:var(--bg3);border-radius:100px;position:relative;border:1px solid var(--bd);transition:background .3s;flex-shrink:0}
+.toggle-switch.on{background:var(--green);border-color:var(--green)}
+.toggle-knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .3s}
+.toggle-switch.on .toggle-knob{left:22px}
+
+.stats-row{display:flex;gap:12px;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0}
+.stat-chip{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px}
+.stat-chip .sn{font-family:'Syne',sans-serif;font-weight:700;font-size:18px}
+.stat-chip .sl{font-size:11px;color:var(--tx2)}
+.stat-chip.earn .sn{color:var(--or)}
+
+.body-grid{display:flex;flex:1;overflow:hidden;min-height:0}
+.map-wrap{flex:1;position:relative;min-height:0}
+#mechMap{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+
+.panel{width:380px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-head h3{font-family:'Syne',sans-serif;font-weight:600;font-size:14px}
+
+/* THREE TABS now: Pending | Active | History */
+.panel-tabs{display:flex;gap:4px}
+.ptab{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--tx2);font-family:'DM Sans',sans-serif;transition:all .2s}
+.ptab.active{background:var(--or-g);color:var(--or)}
+
+.panel-body{flex:1;overflow-y:auto;padding:12px}
+
+.req-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px;margin-bottom:10px;cursor:pointer;transition:all .2s}
+.req-card:hover{border-color:rgba(255,255,255,.15)}
+.req-card.highlighted{border-color:var(--or);background:rgba(255,92,26,.06)}
+.req-card:last-child{margin-bottom:0}
+.req-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.req-left{display:flex;align-items:center;gap:8px}
+.req-icon{width:32px;height:32px;background:var(--bg4);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.req-name{font-size:13px;font-weight:500}
+.req-user{font-size:11px;color:var(--tx2);margin-top:1px}
+.dist-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:100px;background:var(--or-g);color:var(--or);border:1px solid rgba(255,92,26,.2);white-space:nowrap}
+.req-notes{font-size:12px;color:var(--tx2);background:var(--bg4);border-radius:6px;padding:7px 9px;margin-bottom:9px;line-height:1.5}
+.req-actions{display:flex;gap:7px}
+.accept-btn{flex:1;background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s}
+.accept-btn:hover{opacity:.85}
+.view-btn{padding:8px 12px;background:var(--bg4);color:var(--tx2);border:1px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
+.view-btn:hover{border-color:var(--or);color:var(--or)}
+.skip-btn{padding:8px 12px;background:var(--bg4);color:var(--tx2);border:1px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.skip-btn:hover{border-color:rgba(239,68,68,.4);color:var(--red)}
+
+.active-job{background:var(--bg3);border:1px solid rgba(34,197,94,.2);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.active-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.active-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.user-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.avatar{width:38px;height:38px;background:var(--or);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;font-family:'Syne',sans-serif;flex-shrink:0}
+.user-details .un{font-size:14px;font-weight:500}
+.user-details .up{font-size:12px;color:var(--or);margin-top:1px}
+.job-actions{display:flex;gap:8px}
+.complete-btn{flex:1;background:var(--or);color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif}
+.call-btn{width:40px;background:var(--bg4);color:var(--tx);border:1px solid var(--bd);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.call-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* ── HISTORY TAB STYLES ── */
+.history-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.history-card:last-child{margin-bottom:0}
+.history-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.history-left{display:flex;align-items:center;gap:8px}
+.history-icon{width:30px;height:30px;background:rgba(34,197,94,.1);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.history-name{font-size:13px;font-weight:500}
+.history-user{font-size:11px;color:var(--tx2);margin-top:1px}
+.done-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:100px;background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);white-space:nowrap}
+.history-meta{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.history-date{font-size:11px;color:var(--tx2)}
+.history-earnings{font-size:12px;font-weight:600;color:var(--or)}
+
+/* HISTORY SUMMARY BAR */
+.history-summary{background:var(--bg4);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.hs-item{text-align:center}
+.hs-num{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--or)}
+.hs-label{font-size:10px;color:var(--tx2);margin-top:2px}
+
+.map-legend{position:absolute;bottom:24px;left:24px;z-index:500;background:rgba(20,20,20,.92);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(8px)}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+.empty{text-align:center;padding:28px 0;color:var(--tx2);font-size:13px}
+.empty span{font-size:26px;display:block;margin-bottom:6px}
+
+.pulse{animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+@media(max-width:900px){
+  .body-grid{flex-direction:column}
+  .map-wrap{flex:none;height:50vh}
+  .panel{width:100%;border-left:none;border-top:1px solid var(--bd)}
+  .stats-row{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+    <span>Road<em>Assist</em></span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-badge offline" id="statusBadge">Offline</span>
+    <a href="/logout" class="nav-btn">Logout</a>
+  </div>
+</nav>
+
+<div class="toggle-bar" onclick="toggleAvailability()">
+  <div class="toggle-info">
+    <h3 id="toggleTitle">You are currently offline</h3>
+    <p id="toggleDesc">Toggle to go online — user requests will appear on map</p>
+  </div>
+  <div class="toggle-switch" id="toggleSwitch"><div class="toggle-knob"></div></div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-chip earn"><div class="sn" id="todayEarnings">₹0</div><div class="sl">Today earnings</div></div>
+  <div class="stat-chip"><div class="sn" id="todayJobs">0</div><div class="sl">Jobs today</div></div>
+  <div class="stat-chip"><div class="sn" id="totalJobs">0</div><div class="sl">Total jobs</div></div>
+  <div class="stat-chip"><div class="sn" id="myRating">—</div><div class="sl">Rating</div></div>
+  <div class="stat-chip"><div class="sn pulse" id="pendingCount" style="color:var(--or)">0</div><div class="sl">Pending nearby</div></div>
+</div>
+
+<div class="body-grid">
+  <div class="map-wrap">
+    <div id="mechMap"></div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#FF5C1A"></div>Your location</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Pending request</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Accepted job</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>
+        Requests
+        <span class="pulse" id="liveIndicator" style="color:var(--or);display:none;margin-left:4px">●</span>
+      </h3>
+      <!-- FIX: added History tab -->
+      <div class="panel-tabs">
+        <button class="ptab active" id="tabPending" onclick="showTab('pending')">Pending</button>
+        <button class="ptab" id="tabActive"  onclick="showTab('active')">Active</button>
+        <button class="ptab" id="tabHistory" onclick="showTab('history')">History</button>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <!-- PENDING TAB -->
+      <div id="pendingTab">
+        <div class="empty" id="pendingEmpty"><span>📡</span>Go online to see nearby requests</div>
+        <div id="requestsList"></div>
+      </div>
+
+      <!-- ACTIVE JOB TAB -->
+      <div id="activeTab" style="display:none">
+        <div id="activeJobSection">
+          <div class="empty"><span>🔧</span>No active job right now</div>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB — shows all completed jobs by this mechanic -->
+      <div id="historyTab" style="display:none">
+        <div id="historyContent">
+          <div class="empty"><span>📋</span>Loading history...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const svcIcons = {tyre:'🛞',towing:'🚗',battery:'🔋',fuel:'⛽',mechanic:'🔧',accident:'🚨'};
+let isOnline = false, map = null, mechMarker = null;
+let activeUserMarker = null, activeRouteLine = null;
+let pendingMarkers = {}, watchId = null, pollInterval = null;
+let myLat = null, myLng = null, activeTab = 'pending';
+
+(function injectBlink() {
+  const s = document.createElement('style');
+  s.textContent = `@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}`;
+  document.head.appendChild(s);
+})();
+
+// ── MAP ──
+function initMap(lat, lng) {
+  if (map) return;
+  map = L.map('mechMap', {center:[lat,lng], zoom:14});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:19}).addTo(map);
+  const mechIcon = L.divIcon({
+    className:'',
+    html:`<div style="width:40px;height:40px;background:#FF5C1A;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(255,92,26,.6);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:17px;display:block">🔧</span></div>`,
+    iconSize:[40,40], iconAnchor:[20,40], popupAnchor:[0,-42]
+  });
+  mechMarker = L.marker([lat,lng], {icon:mechIcon, zIndexOffset:1000}).addTo(map).bindPopup('<b>Your location</b>');
+}
+
+function updateMechMarker(lat, lng) {
+  if (!map) { initMap(lat, lng); return; }
+  mechMarker.setLatLng([lat, lng]);
+}
+
+// ── PENDING MARKERS ──
+function addPendingMarker(req) {
+  if (!map || pendingMarkers[req.id]) return;
+  const dist = (myLat != null && myLng != null) ? getDistanceKm(myLat, myLng, req.user_lat, req.user_lng) : null;
+  const icon = L.divIcon({
+    className:'',
+    html:`<div style="position:relative"><div style="width:34px;height:34px;background:#3b82f6;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(59,130,246,.6);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:15px;display:block">${svcIcons[req.service_type]||'🔧'}</span></div><div style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid #fff;animation:blink 1.2s infinite"></div></div>`,
+    iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-36]
+  });
+  const marker = L.marker([req.user_lat, req.user_lng], {icon}).addTo(map)
+    .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><b>${req.users?.full_name||'User'}</b><br/><span style="color:#FF5C1A;font-weight:600">${capitalize(req.service_type)} needed</span>${dist!=null?`<br/><span style="color:#888;font-size:12px">${dist.toFixed(1)} km away</span>`:''}${req.notes?`<br/><i style="color:#888;font-size:12px">"${req.notes}"</i>`:''}<br/><button onclick="highlightRequest('${req.id}')" style="margin-top:6px;background:#FF5C1A;color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;width:100%">View request</button></div>`);
+  marker.on('click', () => highlightRequest(req.id));
+  pendingMarkers[req.id] = marker;
+}
+
+function removePendingMarker(id) {
+  if (pendingMarkers[id]) { map.removeLayer(pendingMarkers[id]); delete pendingMarkers[id]; }
+}
+
+function clearAllPendingMarkers() {
+  Object.keys(pendingMarkers).forEach(id => map.removeLayer(pendingMarkers[id]));
+  pendingMarkers = {};
+}
+
+function showAcceptedUserMarker(lat, lng, name) {
+  if (!map) return;
+  const icon = L.divIcon({
+    className:'',
+    html:`<div style="width:36px;height:36px;background:#22c55e;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 10px rgba(34,197,94,.6);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:15px;display:block">📍</span></div>`,
+    iconSize:[36,36], iconAnchor:[18,36], popupAnchor:[0,-38]
+  });
+  if (activeUserMarker) map.removeLayer(activeUserMarker);
+  activeUserMarker = L.marker([lat,lng], {icon, zIndexOffset:900}).addTo(map).bindPopup(`<b>${name}</b><br>Active job location`).openPopup();
+  if (mechMarker) {
+    if (activeRouteLine) map.removeLayer(activeRouteLine);
+    activeRouteLine = L.polyline([mechMarker.getLatLng(), [lat,lng]], {color:'#22c55e', weight:3, dashArray:'8 6', opacity:.8}).addTo(map);
+    map.fitBounds(L.featureGroup([mechMarker, activeUserMarker]).getBounds().pad(0.25));
+  }
+}
+
+function clearActiveJobMarkers() {
+  if (activeUserMarker) { map.removeLayer(activeUserMarker); activeUserMarker = null; }
+  if (activeRouteLine)  { map.removeLayer(activeRouteLine);  activeRouteLine  = null; }
+}
+
+// ── GPS ──
+function startLocationWatch() {
+  if (!navigator.geolocation) { alert('GPS not supported'); return; }
+  watchId = navigator.geolocation.watchPosition(pos => {
+    myLat = pos.coords.latitude; myLng = pos.coords.longitude;
+    if (!map) initMap(myLat, myLng); else updateMechMarker(myLat, myLng);
+    fetch('/api/mechanic/location', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lat:myLat, lng:myLng})});
+  }, err => console.error(err), {enableHighAccuracy:true, maximumAge:5000, timeout:10000});
+}
+
+function stopLocationWatch() {
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+}
+
+// ── TOGGLE ──
+function toggleAvailability() {
+  isOnline = !isOnline;
+  const sw = document.getElementById('toggleSwitch');
+  const badge = document.getElementById('statusBadge');
+  sw.classList.toggle('on', isOnline);
+  badge.textContent = isOnline ? 'Online' : 'Offline';
+  badge.className = 'nav-badge ' + (isOnline ? 'online' : 'offline');
+  document.getElementById('toggleTitle').textContent = isOnline ? 'You are online' : 'You are currently offline';
+  document.getElementById('toggleDesc').textContent  = isOnline ? 'User requests are shown on map in real time' : 'Toggle to go online — user requests will appear on map';
+  document.getElementById('liveIndicator').style.display = isOnline ? 'inline' : 'none';
+  fetch('/api/mechanic/availability', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({is_available:isOnline})});
+  if (isOnline) {
+    startLocationWatch(); loadRequests(); pollInterval = setInterval(loadRequests, 10000);
+  } else {
+    stopLocationWatch(); clearInterval(pollInterval); clearAllPendingMarkers();
+    document.getElementById('requestsList').innerHTML = '';
+    document.getElementById('pendingEmpty').style.display = 'block';
+    document.getElementById('pendingCount').textContent = '0';
+  }
+}
+
+// ── LOAD PENDING REQUESTS ──
+async function loadRequests() {
+  try {
+    const res = await fetch('/api/requests/pending');
+    const data = await res.json();
+    document.getElementById('pendingCount').textContent = data.length;
+    const liveIds = new Set(data.map(r => r.id));
+    Object.keys(pendingMarkers).forEach(id => { if (!liveIds.has(id)) removePendingMarker(id); });
+    if (!data.length) {
+      document.getElementById('pendingEmpty').style.display = 'block';
+      document.getElementById('requestsList').innerHTML = '';
+      return;
+    }
+    document.getElementById('pendingEmpty').style.display = 'none';
+    data.forEach(r => { if (r.user_lat != null && r.user_lng != null) addPendingMarker(r); });
+    document.getElementById('requestsList').innerHTML = data.map(r => {
+      const dist = (myLat != null && myLng != null && r.user_lat != null && r.user_lng != null)
+        ? getDistanceKm(myLat, myLng, r.user_lat, r.user_lng) : null;
+      return `
+        <div class="req-card" id="req-${r.id}" onclick="focusRequest('${r.id}',${r.user_lat},${r.user_lng})">
+          <div class="req-top">
+            <div class="req-left">
+              <div class="req-icon">${svcIcons[r.service_type]||'🔧'}</div>
+              <div><div class="req-name">${capitalize(r.service_type)} help needed</div>
+              <div class="req-user">${r.users?.full_name||'User'} · ${r.users?.phone||''}</div></div>
+            </div>
+            <span class="dist-badge">${dist !== null ? dist.toFixed(1)+' km' : 'Nearby'}</span>
+          </div>
+          ${r.notes ? `<div class="req-notes">"${r.notes}"</div>` : ''}
+          <div class="req-actions">
+            <button class="accept-btn" onclick="event.stopPropagation();acceptRequest('${r.id}','${r.users?.full_name||'User'}','${r.users?.phone||''}','${r.service_type}',${r.user_lat},${r.user_lng})">Accept job</button>
+            <button class="view-btn" onclick="event.stopPropagation();focusRequest('${r.id}',${r.user_lat},${r.user_lng})">View on map</button>
+            <button class="skip-btn" onclick="event.stopPropagation();dismissRequest('${r.id}')">Skip</button>
+          </div>
+        </div>`;
+    }).join('');
+    if (map) {
+      const ml = Object.values(pendingMarkers);
+      if (mechMarker) ml.push(mechMarker);
+      if (ml.length > 1) { try { map.fitBounds(L.featureGroup(ml).getBounds().pad(0.3)); } catch(e){} }
+    }
+  } catch(e) { console.error(e); }
+}
+
+function focusRequest(id, lat, lng) {
+  document.querySelectorAll('.req-card').forEach(c => c.classList.remove('highlighted'));
+  const card = document.getElementById('req-'+id);
+  if (card) card.classList.add('highlighted');
+  if (map && pendingMarkers[id]) { map.setView([lat,lng], 16); pendingMarkers[id].openPopup(); }
+}
+
+function highlightRequest(id) {
+  showTab('pending');
+  const card = document.getElementById('req-'+id);
+  if (card) { card.classList.add('highlighted'); card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+}
+
+// ── ACCEPT ──
+async function acceptRequest(id, name, phone, type, userLat, userLng) {
+  try {
+    const res = await fetch(`/api/request/${id}/accept`, {method:'POST'});
+    const data = await res.json();
+    if (!res.ok) { alert('Error: ' + (data.error || 'Could not accept')); return; }
+    removePendingMarker(id);
+    document.getElementById(`req-${id}`)?.remove();
+    showAcceptedUserMarker(userLat, userLng, name);
+    showTab('active');
+    renderActiveJob(id, name, phone, type);
+    loadMyStats();
+  } catch(e) { alert('Network error.'); console.error(e); }
+}
+
+function dismissRequest(id) {
+  removePendingMarker(id);
+  document.getElementById(`req-${id}`)?.remove();
+  if (!document.querySelectorAll('#requestsList .req-card').length)
+    document.getElementById('pendingEmpty').style.display = 'block';
+}
+
+// ── ACTIVE JOB ──
+function renderActiveJob(id, name, phone, type) {
+  const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase();
+  document.getElementById('activeJobSection').innerHTML = `
+    <div class="active-job">
+      <div class="active-head">
+        <span style="font-size:14px;font-weight:500">${svcIcons[type]||'🔧'} ${capitalize(type)} job</span>
+        <span class="active-badge">In progress</span>
+      </div>
+      <div class="user-row">
+        <div class="avatar">${initials}</div>
+        <div class="user-details"><div class="un">${name}</div><div class="up">${phone}</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);background:var(--bg4);border-radius:6px;padding:7px 9px;margin-bottom:8px">
+        🟢 User location shown on map (green marker)
+      </div>
+      <div class="job-actions">
+        <button class="complete-btn" onclick="completeJob('${id}')">Mark as completed</button>
+        <button class="call-btn" onclick="window.location.href='tel:${phone}'" title="Call user">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 4.9 4.9 2 2 0 0 1 6.9 2.7h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1l-1.3 1.3a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9z"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+async function completeJob(id) {
+  const res = await fetch(`/api/request/${id}/complete`, {method:'POST'});
+  if (res.ok) {
+    clearActiveJobMarkers();
+    document.getElementById('activeJobSection').innerHTML = '<div class="empty"><span>✅</span>Job completed! Well done.</div>';
+    showTab('pending');
+    // FIX: reload history immediately after completing a job
+    loadMyStats();
+    loadHistory();
+  }
+}
+
+// ── HISTORY TAB — shows all completed jobs by this mechanic ──
+async function loadHistory() {
+  const container = document.getElementById('historyContent');
+  try {
+    const res  = await fetch('/api/mechanic/requests');
+    const data = await res.json();
+
+    // Filter only completed jobs
+    const completed = data.filter(r => r.status === 'completed');
+
+    if (!completed.length) {
+      container.innerHTML = '<div class="empty"><span>📋</span>No completed jobs yet</div>';
+      return;
+    }
+
+    // Summary bar
+    const today     = completed.filter(r => isToday(r.created_at)).length;
+    const thisWeek  = completed.filter(r => isThisWeek(r.created_at)).length;
+
+    container.innerHTML = `
+      <div class="history-summary">
+        <div class="hs-item"><div class="hs-num">${completed.length}</div><div class="hs-label">Total done</div></div>
+        <div class="hs-item"><div class="hs-num">${today}</div><div class="hs-label">Today</div></div>
+        <div class="hs-item"><div class="hs-num">${thisWeek}</div><div class="hs-label">This week</div></div>
+      </div>
+      ${completed.map(r => `
+        <div class="history-card">
+          <div class="history-top">
+            <div class="history-left">
+              <div class="history-icon">${svcIcons[r.service_type]||'🔧'}</div>
+              <div>
+                <div class="history-name">${capitalize(r.service_type)} service</div>
+                <div class="history-user">${r.users?.full_name||'User'} · ${r.users?.phone||''}</div>
+              </div>
+            </div>
+            <span class="done-badge">✓ Done</span>
+          </div>
+          <div class="history-meta">
+            <span class="history-date">${formatDate(r.created_at)}</span>
+            <span class="history-earnings">Job completed</span>
+          </div>
+        </div>`).join('')}`;
+  } catch(e) {
+    container.innerHTML = '<div class="empty"><span>⚠️</span>Could not load history</div>';
+    console.error(e);
+  }
+}
+
+// ── TABS ──
+function showTab(tab) {
+  activeTab = tab;
+  document.getElementById('pendingTab').style.display = tab === 'pending' ? 'block' : 'none';
+  document.getElementById('activeTab').style.display  = tab === 'active'  ? 'block' : 'none';
+  document.getElementById('historyTab').style.display = tab === 'history' ? 'block' : 'none';
+  document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
+  document.getElementById('tabActive').classList.toggle('active',  tab === 'active');
+  document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+  // Load history fresh every time the tab is opened
+  if (tab === 'history') loadHistory();
+}
+
+// ── STATS ──
+async function loadMyStats() {
+  try {
+    const res  = await fetch('/api/mechanic/requests');
+    const data = await res.json();
+    const done = data.filter(r => r.status === 'completed');
+    document.getElementById('totalJobs').textContent = data.length;
+    document.getElementById('todayJobs').textContent = done.filter(r => isToday(r.created_at)).length;
+  } catch(e) {}
+}
+
+// ── UTILS ──
+function getDistanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function isToday(d) {
+  const dt = new Date(d), now = new Date();
+  return dt.getDate()===now.getDate() && dt.getMonth()===now.getMonth() && dt.getFullYear()===now.getFullYear();
+}
+
+function isThisWeek(d) {
+  const dt = new Date(d), now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  return dt >= weekStart;
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+
+// ── BOOT ──
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    pos => { myLat = pos.coords.latitude; myLng = pos.coords.longitude; initMap(myLat, myLng); },
+    () => initMap(17.3850, 78.4867)
+  );
+} else { initMap(17.3850, 78.4867); }
+
+loadMyStats();
+</script>
+</body>
+</html>
