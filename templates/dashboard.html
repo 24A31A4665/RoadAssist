@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Assist — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#FF5C1A;--or-d:#E04A0E;--or-g:rgba(255,92,26,.12);--bg:#0D0D0D;--bg2:#141414;--bg3:#1C1C1C;--bg4:#242424;--tx:#F0EDE8;--tx2:#7A7672;--tx3:#3A3835;--bd:rgba(255,255,255,0.07);--r:12px;--green:#22c55e;--red:#ef4444;--amber:#f59e0b}
+html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo .ico{width:34px;height:34px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo .ico svg{width:17px;height:17px}
+.nav-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}
+.nav-logo span em{font-style:normal;color:var(--or)}
+.nav-right{display:flex;align-items:center;gap:16px}
+.nav-user{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--bd);border-radius:100px;padding:6px 14px 6px 6px}
+.nav-avatar{width:28px;height:28px;background:var(--or);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
+.nav-name{font-size:13px;font-weight:500}
+.nav-btn{padding:7px 16px;border-radius:100px;border:1px solid var(--bd);background:none;color:var(--tx2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.nav-btn:hover{border-color:rgba(255,255,255,.2);color:var(--tx)}
+
+/* LIVE REFRESH INDICATOR */
+.refresh-bar{display:flex;align-items:center;gap:8px;padding:7px 32px;background:rgba(34,197,94,.05);border-bottom:1px solid rgba(34,197,94,.12);font-size:12px;color:var(--tx2)}
+.refresh-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.wrap{max-width:1100px;margin:0 auto;padding:32px 24px}
+
+.sos-bar{background:linear-gradient(135deg,#7f0000,#cc0000);border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;border:1px solid rgba(239,68,68,.3)}
+.sos-text h3{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:4px}
+.sos-text p{font-size:13px;color:rgba(255,255,255,.7)}
+.sos-btn{background:#fff;color:#cc0000;border:none;border-radius:100px;padding:10px 24px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Syne',sans-serif;transition:transform .1s}
+.sos-btn:active{transform:scale(.96)}
+
+.section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:16px}
+.services{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:32px}
+.svc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--tx)}
+.svc:hover{border-color:var(--or);background:var(--or-g);transform:translateY(-2px)}
+.svc .icon{font-size:28px;margin-bottom:10px}
+.svc .name{font-size:13px;font-weight:500}
+.svc .desc{font-size:11px;color:var(--tx2);margin-top:3px}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:20px}
+.stat-num{font-family:'Syne',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.5px;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--tx2)}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:20px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-head h3{font-family:'Syne',sans-serif;font-weight:600;font-size:15px}
+
+.req-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd);gap:10px}
+.req-item:last-child{border-bottom:none;padding-bottom:0}
+.req-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.req-icon{width:36px;height:36px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.req-info .rt{font-size:14px;font-weight:500}
+.req-info .rd{font-size:12px;color:var(--tx2);margin-top:2px}
+.req-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px;white-space:nowrap}
+.badge.pending{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.badge.accepted{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.completed{background:rgba(255,255,255,.05);color:var(--tx2);border:1px solid var(--bd)}
+.badge.cancelled{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.badge.ongoing{background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.2)}
+
+/* COMPLETION TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+.track-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;background:var(--or-g);color:var(--or);border:1px solid rgba(255,92,26,.25);font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;font-family:'Syne',sans-serif;transition:all .2s;cursor:pointer}
+.track-btn:hover{background:var(--or);color:#fff;border-color:var(--or)}
+.track-btn svg{width:11px;height:11px;flex-shrink:0}
+
+.tip-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bd)}
+.tip-item:last-child{border-bottom:none}
+.tip-num{width:24px;height:24px;background:var(--or-g);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--or);flex-shrink:0;margin-top:1px}
+.tip-text{font-size:13px;color:var(--tx2);line-height:1.6}
+.tip-text strong{color:var(--tx)}
+
+.empty{text-align:center;padding:32px 0;color:var(--tx2);font-size:14px}
+.empty span{font-size:28px;display:block;margin-bottom:8px}
+
+@media(max-width:768px){.two-col{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}.services{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:480px){.stats-row{grid-template-columns:1fr}.services{grid-template-columns:repeat(2,1fr)}.sos-bar{flex-direction:column;gap:14px;text-align:center}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+    <span>Road<em>Assist</em></span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user">
+      <div class="nav-avatar" id="navAvatar">?</div>
+      <span class="nav-name" id="navName">Loading...</span>
+    </div>
+    <a href="/logout" class="nav-btn">Logout</a>
+  </div>
+</nav>
+
+<!-- FIX: live refresh bar so user knows status auto-updates -->
+<div class="refresh-bar">
+  <div class="refresh-dot"></div>
+  <span>Live — request statuses update automatically every 8 seconds</span>
+</div>
+
+<div class="wrap">
+  <div class="sos-bar">
+    <div class="sos-text">
+      <h3>Emergency SOS</h3>
+      <p>In danger? Tap to alert all nearby mechanics instantly</p>
+    </div>
+    <button class="sos-btn" onclick="triggerSOS()">SOS — Get Help Now</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="totalReqs">—</div><div class="stat-label">Total requests</div></div>
+    <div class="stat-card"><div class="stat-num" id="completedReqs">—</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card"><div class="stat-num" id="pendingReqs">—</div><div class="stat-label">Pending / Active</div></div>
+  </div>
+
+  <div class="section-title">Request a service</div>
+  <div class="services">
+    <a class="svc" href="/request-service?type=tyre"><div class="icon">🛞</div><div class="name">Flat tyre</div><div class="desc">Repair or replace</div></a>
+    <a class="svc" href="/request-service?type=towing"><div class="icon">🚗</div><div class="name">Towing</div><div class="desc">Vehicle towing</div></a>
+    <a class="svc" href="/request-service?type=battery"><div class="icon">🔋</div><div class="name">Battery</div><div class="desc">Jump start</div></a>
+    <a class="svc" href="/request-service?type=fuel"><div class="icon">⛽</div><div class="name">Fuel</div><div class="desc">Emergency fuel</div></a>
+    <a class="svc" href="/request-service?type=mechanic"><div class="icon">🔧</div><div class="name">Mechanic</div><div class="desc">General repair</div></a>
+    <a class="svc" href="/request-service?type=accident"><div class="icon">🚨</div><div class="name">Accident</div><div class="desc">Emergency help</div></a>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head"><h3>Recent requests</h3></div>
+      <div id="reqList"><div class="empty"><span>📋</span>Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Quick tips</h3></div>
+      <div class="tip-item"><div class="tip-num">1</div><div class="tip-text"><strong>Enable GPS</strong> before requesting — helps mechanics find you faster.</div></div>
+      <div class="tip-item"><div class="tip-num">2</div><div class="tip-text"><strong>Add notes</strong> when requesting — describe your exact problem clearly.</div></div>
+      <div class="tip-item"><div class="tip-num">3</div><div class="tip-text"><strong>Keep phone nearby</strong> — mechanic may call to confirm location.</div></div>
+      <div class="tip-item"><div class="tip-num">4</div><div class="tip-text"><strong>Rate your mechanic</strong> after every service — helps other users.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification for status change -->
+<div class="toast" id="toast"></div>
+
+<script>
+const svcIcons = {tyre:'🛞', towing:'🚗', battery:'🔋', fuel:'⛽', mechanic:'🔧', accident:'🚨'};
+const TRACKABLE = new Set(['pending', 'accepted', 'ongoing']);
+
+// FIX: track previous statuses to detect changes and show toast
+let prevStatuses = {};
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function loadUserInfo() {
+  try {
+    const res = await fetch('/api/requests/user');
+    if (res.redirected) { window.location.href = '/'; return; }
+    const data = await res.json();
+
+    // FIX: detect status changes vs previous poll and notify user
+    data.forEach(r => {
+      const prev = prevStatuses[r.id];
+      if (prev && prev !== r.status) {
+        if (r.status === 'completed') {
+          showToast('✅ Your service has been completed!');
+        } else if (r.status === 'accepted') {
+          showToast('🔧 A mechanic has accepted your request!');
+        }
+      }
+      prevStatuses[r.id] = r.status;
+    });
+
+    const total  = data.length;
+    const done   = data.filter(r => r.status === 'completed').length;
+    const active = data.filter(r => TRACKABLE.has(r.status)).length;
+
+    document.getElementById('totalReqs').textContent     = total;
+    document.getElementById('completedReqs').textContent = done;
+    document.getElementById('pendingReqs').textContent   = active;
+
+    const list = document.getElementById('reqList');
+    if (!data.length) {
+      list.innerHTML = '<div class="empty"><span>📋</span>No requests yet</div>';
+      return;
+    }
+
+    list.innerHTML = data.slice(0, 8).map(r => {
+      const trackBtn = TRACKABLE.has(r.status)
+        ? `<a class="track-btn" href="/track/${r.id}">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+             Track
+           </a>`
+        : '';
+      return `
+        <div class="req-item">
+          <div class="req-left">
+            <div class="req-icon">${svcIcons[r.service_type] || '🔧'}</div>
+            <div class="req-info">
+              <div class="rt">${capitalize(r.service_type)} service</div>
+              <div class="rd">${formatDate(r.created_at)}</div>
+            </div>
+          </div>
+          <div class="req-right">
+            <span class="badge ${r.status}">${formatStatus(r.status)}</span>
+            ${trackBtn}
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch(e) { console.error(e); }
+}
+
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+}
+
+function formatStatus(s) {
+  const m = {pending:'Waiting', accepted:'Accepted', ongoing:'In progress', completed:'Completed', cancelled:'Cancelled'};
+  return m[s] || capitalize(s);
+}
+
+function triggerSOS() {
+  if (!navigator.geolocation) { alert('GPS not available'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    fetch('/api/request', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({service_type:'accident', lat:pos.coords.latitude, lng:pos.coords.longitude, notes:'SOS — EMERGENCY'})
+    }).then(r => r.json()).then(d => {
+      alert('SOS sent! Help is on the way.');
+      if (d.request) window.location.href = '/track/' + d.request.id;
+    });
+  }, () => alert('Please enable GPS and try again.'));
+}
+
+const userName = "{{ user.name if user else 'User' }}";
+document.getElementById('navName').textContent   = userName;
+document.getElementById('navAvatar').textContent = userName.charAt(0).toUpperCase();
+
+// FIX: poll every 8 seconds so completed status reflects immediately
+loadUserInfo();
+setInterval(loadUserInfo, 8000);
+</script>
+</body>
+</html>
