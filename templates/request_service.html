@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Assist — Request Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#FF5C1A;--or-d:#E04A0E;--or-g:rgba(255,92,26,.12);--bg:#0D0D0D;--bg2:#141414;--bg3:#1C1C1C;--tx:#F0EDE8;--tx2:#7A7672;--tx3:#3A3835;--bd:rgba(255,255,255,0.07);--r:12px;--green:#22c55e}
+html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif}
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:var(--bg2);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo .ico{width:34px;height:34px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo .ico svg{width:17px;height:17px}
+.nav-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:16px}
+.nav-logo span em{font-style:normal;color:var(--or)}
+.back-link{display:flex;align-items:center;gap:6px;color:var(--tx2);text-decoration:none;font-size:14px;transition:color .2s}
+.back-link:hover{color:var(--tx)}
+
+.wrap{max-width:700px;margin:0 auto;padding:40px 24px}
+.page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;letter-spacing:-.5px;margin-bottom:6px}
+.page-sub{color:var(--tx2);font-size:14px;margin-bottom:32px}
+
+/* SERVICE SELECTOR */
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.svc-opt{background:var(--bg2);border:2px solid var(--bd);border-radius:var(--r);padding:18px 12px;text-align:center;cursor:pointer;transition:all .2s}
+.svc-opt:hover{border-color:rgba(255,92,26,.4)}
+.svc-opt.sel{border-color:var(--or);background:var(--or-g)}
+.svc-opt .icon{font-size:26px;margin-bottom:8px}
+.svc-opt .sname{font-size:13px;font-weight:500}
+.svc-opt .sdesc{font-size:11px;color:var(--tx2);margin-top:2px}
+.svc-opt.sel .sdesc{color:rgba(255,92,26,.7)}
+
+/* MAP */
+.map-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
+.map-head{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.map-head h3{font-family:'Syne',sans-serif;font-weight:600;font-size:14px}
+.locate-btn{background:var(--or-g);border:1px solid rgba(255,92,26,.3);color:var(--or);border-radius:100px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.locate-btn:hover{background:rgba(255,92,26,.2)}
+#mapPlaceholder{height:220px;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--tx2);font-size:14px}
+#mapPlaceholder svg{width:32px;height:32px;opacity:.4}
+.map-coords{padding:10px 16px;font-size:12px;color:var(--tx2);border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.coord-dot{width:8px;height:8px;background:var(--green);border-radius:50%;flex-shrink:0}
+
+/* NOTES */
+.fg{margin-bottom:18px}
+label{display:block;font-size:11px;font-weight:500;color:var(--tx2);margin-bottom:7px;letter-spacing:.5px;text-transform:uppercase}
+textarea{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;font-size:14px;color:var(--tx);font-family:'DM Sans',sans-serif;outline:none;resize:none;height:90px;transition:border-color .2s}
+textarea:focus{border-color:var(--or)}
+textarea::placeholder{color:var(--tx3)}
+
+/* PRICING */
+.price-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+.price-info h4{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;margin-bottom:3px}
+.price-info p{font-size:12px;color:var(--tx2)}
+.price-range{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--or)}
+
+.btn{width:100%;padding:14px;background:var(--or);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;transition:background .2s,transform .1s}
+.btn:hover{background:var(--or-d)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;pointer-events:none}
+
+.msg{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;display:none}
+.msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;display:block}
+.msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#86efac;display:block}
+
+/* SUCCESS OVERLAY */
+.success-screen{display:none;text-align:center;padding:48px 24px}
+.success-screen .big-icon{font-size:60px;margin-bottom:16px}
+.success-screen h2{font-family:'Syne',sans-serif;font-weight:700;font-size:24px;margin-bottom:8px}
+.success-screen p{color:var(--tx2);font-size:14px;margin-bottom:28px;line-height:1.6}
+.track-btn{display:inline-block;background:var(--or);color:#fff;padding:12px 32px;border-radius:var(--r);text-decoration:none;font-family:'Syne',sans-serif;font-weight:600;font-size:14px}
+
+@media(max-width:500px){.svc-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+    <span>Road<em>Assist</em></span>
+  </div>
+  <a href="/dashboard" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Back to dashboard
+  </a>
+</nav>
+
+<div class="wrap">
+
+  <!-- FORM -->
+  <div id="formSection">
+    <div class="page-title">Request help</div>
+    <div class="page-sub">Tell us what you need — a mechanic will reach you shortly</div>
+
+    <div id="msgBox" class="msg"></div>
+
+    <!-- SERVICE TYPE -->
+    <label style="margin-bottom:12px">Select service type</label>
+    <div class="svc-grid">
+      <div class="svc-opt" onclick="selSvc('tyre',this)"><div class="icon">🛞</div><div class="sname">Flat tyre</div><div class="sdesc">Repair or replace</div></div>
+      <div class="svc-opt" onclick="selSvc('towing',this)"><div class="icon">🚗</div><div class="sname">Towing</div><div class="sdesc">Vehicle tow</div></div>
+      <div class="svc-opt" onclick="selSvc('battery',this)"><div class="icon">🔋</div><div class="sname">Battery</div><div class="sdesc">Jump start</div></div>
+      <div class="svc-opt" onclick="selSvc('fuel',this)"><div class="icon">⛽</div><div class="sname">Fuel</div><div class="sdesc">Emergency fuel</div></div>
+      <div class="svc-opt" onclick="selSvc('mechanic',this)"><div class="icon">🔧</div><div class="sname">Mechanic</div><div class="sdesc">General repair</div></div>
+      <div class="svc-opt" onclick="selSvc('accident',this)"><div class="icon">🚨</div><div class="sname">Accident</div><div class="sdesc">Emergency</div></div>
+    </div>
+
+    <!-- LOCATION -->
+    <div class="map-card">
+      <div class="map-head">
+        <h3>Your location</h3>
+        <button class="locate-btn" onclick="getLocation()">Detect GPS</button>
+      </div>
+      <div id="mapPlaceholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        Tap "Detect GPS" to set your location
+      </div>
+      <div class="map-coords" id="coordsBar" style="display:none">
+        <div class="coord-dot"></div>
+        <span id="coordsText">Location detected</span>
+      </div>
+    </div>
+
+    <!-- PRICE ESTIMATE -->
+    <div class="price-card" id="priceCard" style="display:none">
+      <div class="price-info">
+        <h4 id="priceTitle">Estimated cost</h4>
+        <p>Final price set by mechanic on arrival</p>
+      </div>
+      <div class="price-range" id="priceRange">₹0</div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="fg">
+      <label>Additional notes (optional)</label>
+      <textarea id="notes" placeholder="Describe your problem in detail... e.g. 'Front left tyre punctured, near highway milestone 42'"></textarea>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitRequest()">Send Request</button>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-screen" id="successSection">
+    <div class="big-icon">✅</div>
+    <h2>Request sent!</h2>
+    <p>We're finding the nearest mechanic for you.<br/>Average wait time is <strong style="color:var(--or)">3–8 minutes</strong>.</p>
+    <a id="trackLink" href="#" class="track-btn">Track mechanic live</a>
+  </div>
+
+</div>
+
+<script>
+let selectedSvc = null, userLat = null, userLng = null;
+
+const prices = {tyre:'₹200–₹500',towing:'₹500–₹1500',battery:'₹150–₹300',fuel:'₹100 + fuel cost',mechanic:'₹300–₹1000',accident:'₹500–₹2000'};
+const priceTitle = {tyre:'Tyre repair estimate',towing:'Towing estimate',battery:'Battery jump start',fuel:'Fuel delivery',mechanic:'Mechanic visit',accident:'Emergency assistance'};
+
+// Pre-select from URL query
+const urlType = new URLSearchParams(window.location.search).get('type');
+if(urlType){
+  const opts = document.querySelectorAll('.svc-opt');
+  opts.forEach(o=>{if(o.querySelector('.sname').textContent.toLowerCase().includes(urlType.split('').join(''))||o.getAttribute('onclick').includes("'"+urlType+"'")){}});
+  // find matching
+  document.querySelectorAll('.svc-opt').forEach(o=>{
+    if(o.getAttribute('onclick').includes("'"+urlType+"'")){selSvc(urlType,o);}
+  });
+}
+
+function selSvc(type, el){
+  document.querySelectorAll('.svc-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedSvc = type;
+  const pc = document.getElementById('priceCard');
+  pc.style.display='flex';
+  document.getElementById('priceTitle').textContent = priceTitle[type]||'Estimated cost';
+  document.getElementById('priceRange').textContent = prices[type]||'Contact mechanic';
+}
+
+function getLocation(){
+  if(!navigator.geolocation){showMsg('GPS not supported on this browser','error');return;}
+  const btn=document.querySelector('.locate-btn');
+  btn.textContent='Detecting...';btn.disabled=true;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+    document.getElementById('mapPlaceholder').innerHTML=`<div style="font-size:36px">📍</div><div>Location detected</div>`;
+    document.getElementById('coordsBar').style.display='flex';
+    document.getElementById('coordsText').textContent=`${userLat.toFixed(5)}, ${userLng.toFixed(5)}`;
+    btn.textContent='Detected ✓';btn.style.background='rgba(34,197,94,.15)';btn.style.color='#22c55e';btn.style.borderColor='rgba(34,197,94,.3)';
+  },()=>{btn.textContent='Detect GPS';btn.disabled=false;showMsg('Could not detect location. Please enable GPS.','error');});
+}
+
+function showMsg(t,type){const b=document.getElementById('msgBox');b.textContent=t;b.className='msg '+(type==='error'?'err':'ok');}
+
+async function submitRequest(){
+  if(!selectedSvc){showMsg('Please select a service type.','error');return;}
+  if(!userLat||!userLng){showMsg('Please detect your GPS location first.','error');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.textContent='Sending request...';
+
+  const res=await fetch('/api/request',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({service_type:selectedSvc,lat:userLat,lng:userLng,notes:document.getElementById('notes').value.trim()})});
+  const d=await res.json();
+
+  if(!res.ok){showMsg(d.error||'Something went wrong.','error');btn.disabled=false;btn.textContent='Send Request';return;}
+
+  document.getElementById('formSection').style.display='none';
+  document.getElementById('successSection').style.display='block';
+  if(d.request)document.getElementById('trackLink').href='/track/'+d.request.id;
+}
+</script>
+</body>
+</html>
