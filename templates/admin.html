@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Assist — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--or:#FF5C1A;--or-d:#E04A0E;--or-g:rgba(255,92,26,.12);--bg:#0D0D0D;--bg2:#141414;--bg3:#1C1C1C;--bg4:#242424;--tx:#F0EDE8;--tx2:#7A7672;--tx3:#3A3835;--bd:rgba(255,255,255,0.07);--r:12px;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6}
+html,body{min-height:100vh;background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;display:flex}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:20px;flex-shrink:0;position:sticky;top:0;height:100vh}
+.s-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.s-logo .ico{width:32px;height:32px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.s-logo .ico svg{width:16px;height:16px}
+.s-logo span{font-family:'Syne',sans-serif;font-weight:800;font-size:15px}
+.s-logo span em{font-style:normal;color:var(--or)}
+.s-label{font-size:10px;font-weight:600;color:var(--tx3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;margin-top:16px}
+.s-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--tx2);transition:all .2s;margin-bottom:2px;border:none;background:none;width:100%;font-family:'DM Sans',sans-serif;text-align:left}
+.s-item:hover{background:var(--bg3);color:var(--tx)}
+.s-item.active{background:var(--or-g);color:var(--or)}
+.s-item svg{width:15px;height:15px;flex-shrink:0}
+.s-bottom{margin-top:auto}
+.s-user{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+.s-user .su-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.s-user .su-role{font-size:11px;color:var(--or)}
+.logout-btn{display:block;text-align:center;margin-top:10px;padding:8px;background:none;border:1px solid var(--bd);border-radius:8px;color:var(--tx2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:all .2s}
+.logout-btn:hover{border-color:rgba(239,68,68,.4);color:var(--red)}
+
+/* MAIN */
+.main{flex:1;overflow-x:hidden}
+.topbar{padding:18px 28px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.topbar h1{font-family:'Syne',sans-serif;font-weight:700;font-size:20px}
+.topbar p{font-size:13px;color:var(--tx2)}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green)}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.content{padding:24px 28px}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:18px}
+.stat-card .sn{font-family:'Syne',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.5px;margin-bottom:4px}
+.stat-card .sl{font-size:12px;color:var(--tx2)}
+.stat-card .si{font-size:22px;margin-bottom:8px}
+
+/* TABLE */
+.table-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
+.table-head{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.table-head h3{font-family:'Syne',sans-serif;font-weight:600;font-size:14px}
+.table-tabs{display:flex;gap:4px}
+.ttab{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--tx2);font-family:'DM Sans',sans-serif;transition:all .2s}
+.ttab.active{background:var(--or-g);color:var(--or)}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:var(--tx3);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--bd)}
+td{padding:13px 20px;font-size:13px;border-bottom:1px solid var(--bd)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px;white-space:nowrap}
+.badge.pending{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.badge.accepted{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.badge.completed{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.cancelled{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.badge.verified{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.unverified{background:rgba(255,255,255,.05);color:var(--tx2);border:1px solid var(--bd)}
+
+.section{display:none}
+.section.active{display:block}
+
+.empty-row td{text-align:center;padding:32px;color:var(--tx2)}
+
+@media(max-width:900px){.sidebar{display:none}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="s-logo">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+    <span>Road<em>Assist</em></span>
+  </div>
+
+  <div class="s-label">Main</div>
+  <button class="s-item active" onclick="showSection('overview',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview
+  </button>
+  <button class="s-item" onclick="showSection('requests',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Requests
+  </button>
+  <button class="s-item" onclick="showSection('users',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Users
+  </button>
+
+  <div class="s-bottom">
+    <div class="s-user">
+      <div class="su-name" id="adminName">Admin</div>
+      <div class="su-role">Administrator</div>
+    </div>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div class="topbar">
+    <div><h1 id="pageTitle">Overview</h1><p id="pageDesc">Platform stats and activity</p></div>
+    <div class="live-badge"><div class="live-dot"></div>Live data</div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="section active" id="sec-overview">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="si">👤</div><div class="sn" id="statUsers">—</div><div class="sl">Total users</div></div>
+        <div class="stat-card"><div class="si">🔧</div><div class="sn" id="statMechs">—</div><div class="sl">Mechanics</div></div>
+        <div class="stat-card"><div class="si">📋</div><div class="sn" id="statReqs">—</div><div class="sl">All requests</div></div>
+        <div class="stat-card"><div class="si">💰</div><div class="sn" id="statRev" style="font-size:20px">—</div><div class="sl">Total revenue</div></div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-head"><h3>Recent service requests</h3></div>
+        <table><thead><tr><th>Service</th><th>User</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="overviewTable"><tr class="empty-row"><td colspan="4">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="section" id="sec-requests">
+      <div class="table-card">
+        <div class="table-head">
+          <h3>All service requests</h3>
+          <div class="table-tabs">
+            <button class="ttab active" onclick="filterRequests('all',this)">All</button>
+            <button class="ttab" onclick="filterRequests('pending',this)">Pending</button>
+            <button class="ttab" onclick="filterRequests('completed',this)">Completed</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Service</th><th>User</th><th>Phone</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody id="requestsTable"><tr class="empty-row"><td colspan="5">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section" id="sec-users">
+      <div class="table-card">
+        <div class="table-head">
+          <h3>All users</h3>
+          <div class="table-tabs">
+            <button class="ttab active" onclick="filterUsers('all',this)">All</button>
+            <button class="ttab" onclick="filterUsers('user',this)">Users</button>
+            <button class="ttab" onclick="filterUsers('mechanic',this)">Mechanics</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th></tr></thead>
+        <tbody id="usersTable"><tr class="empty-row"><td colspan="5">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let allRequests=[], allUsers=[];
+
+function showSection(name, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.s-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  el.classList.add('active');
+  const titles={overview:'Overview',requests:'Service requests',users:'Users & mechanics'};
+  const descs={overview:'Platform stats and activity',requests:'All service request history',users:'Manage all registered users'};
+  document.getElementById('pageTitle').textContent=titles[name];
+  document.getElementById('pageDesc').textContent=descs[name];
+}
+
+function capitalize(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+function formatDate(d){return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+
+async function loadStats(){
+  try{
+    const res=await fetch('/api/admin/stats');
+    const d=await res.json();
+    document.getElementById('statUsers').textContent=d.total_users||0;
+    document.getElementById('statMechs').textContent=d.total_mechanics||0;
+    document.getElementById('statReqs').textContent=d.total_requests||0;
+    document.getElementById('statRev').textContent='₹'+Math.round(d.total_revenue||0).toLocaleString('en-IN');
+  }catch(e){console.error(e);}
+}
+
+async function loadRequests(){
+  try{
+    const res=await fetch('/api/admin/requests');
+    allRequests=await res.json();
+    renderRequests(allRequests);
+    renderOverview(allRequests.slice(0,8));
+  }catch(e){}
+}
+
+function renderRequests(data){
+  const tb=document.getElementById('requestsTable');
+  if(!data.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">No requests found</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${capitalize(r.service_type)}</td>
+    <td>${r.users?.full_name||'—'}</td>
+    <td>${r.users?.phone||'—'}</td>
+    <td><span class="badge ${r.status}">${capitalize(r.status)}</span></td>
+    <td>${formatDate(r.created_at)}</td>
+  </tr>`).join('');
+}
+
+function renderOverview(data){
+  const tb=document.getElementById('overviewTable');
+  if(!data.length){tb.innerHTML='<tr class="empty-row"><td colspan="4">No requests yet</td></tr>';return;}
+  tb.innerHTML=data.map(r=>`<tr>
+    <td>${capitalize(r.service_type)}</td>
+    <td>${r.users?.full_name||'—'}</td>
+    <td><span class="badge ${r.status}">${capitalize(r.status)}</span></td>
+    <td>${formatDate(r.created_at)}</td>
+  </tr>`).join('');
+}
+
+function filterRequests(status,el){
+  document.querySelectorAll('#sec-requests .ttab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderRequests(status==='all'?allRequests:allRequests.filter(r=>r.status===status));
+}
+
+async function loadUsers(){
+  try{
+    const res=await fetch('/api/admin/users');
+    allUsers=await res.json();
+    renderUsers(allUsers);
+  }catch(e){}
+}
+
+function renderUsers(data){
+  const tb=document.getElementById('usersTable');
+  if(!data.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">No users found</td></tr>';return;}
+  tb.innerHTML=data.map(u=>`<tr>
+    <td>${u.full_name}</td>
+    <td>${u.email}</td>
+    <td><span class="badge ${u.role==='mechanic'?'accepted':'completed'}">${capitalize(u.role)}</span></td>
+    <td><span class="badge ${u.is_verified?'verified':'unverified'}">${u.is_verified?'Verified':'Pending'}</span></td>
+    <td>${formatDate(u.created_at)}</td>
+  </tr>`).join('');
+}
+
+function filterUsers(role,el){
+  document.querySelectorAll('#sec-users .ttab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderUsers(role==='all'?allUsers:allUsers.filter(u=>u.role===role));
+}
+
+const adminName = "{{ user.name if user else 'Admin' }}";
+document.getElementById('adminName').textContent = adminName;
+
+loadStats();
+loadRequests();
+loadUsers();
+setInterval(()=>{loadStats();loadRequests();},30000);
+</script>
+</body>
+</html>
